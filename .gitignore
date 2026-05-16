@@ -3,3 +3,5 @@ config.json
 output/
 __pycache__/
 .idea/
+build/
+dist/
