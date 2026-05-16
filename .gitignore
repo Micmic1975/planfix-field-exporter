@@ -1,0 +1,5 @@
+config.json
+.venv/
+output/
+__pycache__/
+.idea/
