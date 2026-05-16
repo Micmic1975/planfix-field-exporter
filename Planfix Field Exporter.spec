@@ -30,6 +30,7 @@ exe = EXE(
     a.datas,
     [],
     name=f'Planfix-Field-Exporter-{APP_VERSION}',
+    icon='assets/app-icon.ico',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

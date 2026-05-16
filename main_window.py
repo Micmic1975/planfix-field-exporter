@@ -1,9 +1,10 @@
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox
 
 from csv_export import save_to_csv
 from field_exporter import get_fields_by_source, normalize_field, normalize_source_type
 from planfix_client import get_object_list, get_task_template_list
+from searchable_dropdown import SearchableDropdown
 from settings import (
     load_account,
     load_token,
@@ -20,6 +21,7 @@ class MainWindow:
 
         self.root = tk.Tk()
         self.root.title(f"Planfix Field Exporter {APP_VERSION}")
+        self.root.iconbitmap("assets/app-icon.ico")
         self.root.resizable(False, False)
 
         self.source_type_var = tk.StringVar(value="object")
@@ -29,6 +31,7 @@ class MainWindow:
         self.token_var = tk.StringVar()
 
         self.items_by_display_name: dict[str, dict] = {}
+        self.all_items: list[dict] = []
 
         self._build_ui()
         self._load_settings()
@@ -163,22 +166,22 @@ class MainWindow:
             fg="#555555",
         ).grid(row=0, column=0, sticky="e", pady=(0, 4))
 
-        self.selection_combo = ttk.Combobox(
+        self.selection_dropdown = SearchableDropdown(
             selection_frame,
-            state="readonly",
             width=68,
         )
-        self.selection_combo.grid(row=1, column=0, sticky="ew")
+        self.selection_dropdown.grid(row=1, column=0, sticky="ew")
 
         action_frame = tk.Frame(work_frame)
         action_frame.grid(row=2, column=0, sticky="ew", pady=(12, 0))
 
-        tk.Button(
+        self.export_button = tk.Button(
             action_frame,
             text="Выгрузить",
             width=14,
             command=self._export_selected_item,
-        ).pack(side="right")
+        )
+        self.export_button.pack(side="right")
 
         tk.Label(
             work_frame,
@@ -201,8 +204,8 @@ class MainWindow:
 
     def _on_source_type_changed(self) -> None:
         self.items_by_display_name.clear()
-        self.selection_combo["values"] = []
-        self.selection_combo.set("")
+        self.all_items = []
+        self.selection_dropdown.clear()
         self.loaded_count_var.set("")
         self._update_source_label()
 
@@ -235,32 +238,39 @@ class MainWindow:
             messagebox.showerror("Ошибка", str(error))
             return
 
-        sorted_items = sorted(
+        self.all_items = sorted(
             items,
             key=lambda item: str(item.get("name", "")).casefold(),
         )
+        self._apply_filter()
+
+    def _apply_filter(self) -> None:
+        source_type = self.source_type_var.get()
+        if source_type == "object":
+            id_label = "ID объекта"
+        else:
+            id_label = "ID шаблона"
 
         display_names = []
         self.items_by_display_name.clear()
 
-        for item in sorted_items:
+        for item in self.all_items:
             item_id = item.get("id", "")
             item_name = item.get("name", "")
             display_name = f"{item_name} ({id_label}: {item_id})"
             display_names.append(display_name)
             self.items_by_display_name[display_name] = item
 
-        self.selection_combo["values"] = display_names
+        self.selection_dropdown.set_items(display_names)
 
         if display_names:
-            self.selection_combo.current(0)
             if source_type == "object":
                 self.loaded_count_var.set(f"Загружено объектов: {len(display_names)}")
             else:
                 self.loaded_count_var.set(f"Загружено шаблонов: {len(display_names)}")
             self.status_var.set("")
         else:
-            self.selection_combo.set("")
+            self.selection_dropdown.clear()
             self.loaded_count_var.set("")
             self.status_var.set("Список пуст.")
 
@@ -272,7 +282,7 @@ class MainWindow:
         )
 
     def _export_selected_item(self) -> None:
-        display_name = self.selection_combo.get()
+        display_name = self.selection_dropdown.get()
         selected_item = self.items_by_display_name.get(display_name)
 
         if not selected_item:
@@ -317,6 +327,9 @@ class MainWindow:
             f"Полей выгружено: {len(rows)}\n"
             f"Файл:\n{output_file}",
         )
+        self.selection_dropdown.suppress_next_focus_popup = True
+        self.selection_dropdown.hide_popup()
+        self.export_button.focus_set()
 
     def _save_settings(self) -> None:
         try:
