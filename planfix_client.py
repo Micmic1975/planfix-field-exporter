@@ -115,6 +115,24 @@ def get_object_list(config: dict) -> list[dict]:
     return load_all_pages(fetch_page, "objects")
 
 
+def check_connection(config: dict) -> None:
+    data = planfix_post(
+        config,
+        "/object/list",
+        payload={
+            "offset": 0,
+            "pageSize": 1,
+            "fields": "id,name",
+        },
+    )
+
+    if data.get("result") != "success":
+        raise RuntimeError(
+            "Planfix вернул неуспешный результат при проверке настроек:\n"
+            f"{json.dumps(data, ensure_ascii=False, indent=2)}"
+        )
+
+
 def get_task_template_list(config: dict) -> list[dict]:
     def fetch_page(offset: int, page_size: int) -> dict:
         data = planfix_get(

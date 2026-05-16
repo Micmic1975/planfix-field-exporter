@@ -27,8 +27,48 @@ def get_settings_file() -> Path:
     return get_settings_dir() / SETTINGS_FILENAME
 
 
-def get_exports_dir() -> Path:
+def get_default_exports_dir() -> Path:
     return Path(user_documents_dir()) / APP_NAME
+
+
+def get_exports_dir() -> Path:
+    configured_dir = load_exports_dir()
+    return configured_dir or get_default_exports_dir()
+
+
+def load_settings_data() -> dict:
+    settings_file = get_settings_file()
+
+    if not settings_file.exists():
+        return {}
+
+    try:
+        with open(settings_file, "r", encoding="utf-8") as file:
+            data = json.load(file)
+    except json.JSONDecodeError as error:
+        raise RuntimeError(
+            f"Ошибка в формате файла настроек:\n{error}"
+        ) from error
+
+    if not isinstance(data, dict):
+        raise RuntimeError(
+            "Файл настроек должен содержать JSON-объект."
+        )
+
+    return data
+
+
+def save_settings_data(data: dict) -> None:
+    settings_dir = get_settings_dir()
+    settings_dir.mkdir(parents=True, exist_ok=True)
+
+    with open(get_settings_file(), "w", encoding="utf-8") as file:
+        json.dump(
+            data,
+            file,
+            ensure_ascii=False,
+            indent=2,
+        )
 
 
 def make_output_filename(source_type: str, source_id: int) -> Path:
@@ -100,40 +140,46 @@ def validate_token(token: str) -> str:
 
 
 def load_account() -> str | None:
-    settings_file = get_settings_file()
-
-    if not settings_file.exists():
-        return None
-
-    try:
-        with open(settings_file, "r", encoding="utf-8") as file:
-            data = json.load(file)
-    except json.JSONDecodeError as error:
-        raise RuntimeError(
-            f"Ошибка в формате файла настроек:\n{error}"
-        ) from error
-
-    if not isinstance(data, dict):
-        raise RuntimeError(
-            "Файл настроек должен содержать JSON-объект."
-        )
-
+    data = load_settings_data()
     account = normalize_account(data.get("account", ""))
     return account or None
 
 
 def save_account(account: str) -> None:
     cleaned_account = validate_account(account)
-    settings_dir = get_settings_dir()
-    settings_dir.mkdir(parents=True, exist_ok=True)
+    data = load_settings_data()
+    data["account"] = cleaned_account
+    save_settings_data(data)
 
-    with open(get_settings_file(), "w", encoding="utf-8") as file:
-        json.dump(
-            {"account": cleaned_account},
-            file,
-            ensure_ascii=False,
-            indent=2,
-        )
+
+def normalize_exports_dir(exports_dir: str | Path) -> Path:
+    return Path(str(exports_dir)).expanduser()
+
+
+def validate_exports_dir(exports_dir: str | Path) -> Path:
+    if not str(exports_dir).strip():
+        raise ValueError("Папка выгрузок не может быть пустой.")
+
+    cleaned_exports_dir = normalize_exports_dir(exports_dir)
+
+    return cleaned_exports_dir
+
+
+def load_exports_dir() -> Path | None:
+    data = load_settings_data()
+    exports_dir = str(data.get("exports_dir", "")).strip()
+
+    if not exports_dir:
+        return None
+
+    return normalize_exports_dir(exports_dir)
+
+
+def save_exports_dir(exports_dir: str | Path) -> None:
+    cleaned_exports_dir = validate_exports_dir(exports_dir)
+    data = load_settings_data()
+    data["exports_dir"] = str(cleaned_exports_dir)
+    save_settings_data(data)
 
 
 def load_token(account: str) -> str | None:

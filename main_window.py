@@ -1,16 +1,24 @@
+import os
 import tkinter as tk
-from tkinter import messagebox
+import webbrowser
+from tkinter import filedialog, messagebox
 
+from app_links import PROJECT_URL, USER_GUIDE_URL
+from app_resources import resource_path
 from csv_export import save_to_csv
 from field_exporter import get_fields_by_source, normalize_field, normalize_source_type
-from planfix_client import get_object_list, get_task_template_list
+from planfix_client import check_connection, get_object_list, get_task_template_list
 from searchable_dropdown import SearchableDropdown
 from settings import (
+    get_exports_dir,
     load_account,
     load_token,
     make_named_output_filename,
     save_account,
+    save_exports_dir,
     save_token,
+    validate_account,
+    validate_token,
 )
 from version import APP_VERSION
 
@@ -21,7 +29,10 @@ class MainWindow:
 
         self.root = tk.Tk()
         self.root.title(f"Planfix Field Exporter {APP_VERSION}")
-        self.root.iconbitmap("assets/app-icon.ico")
+        try:
+            self.root.iconbitmap(resource_path("assets/app-icon.ico"))
+        except tk.TclError:
+            pass
         self.root.resizable(False, False)
 
         self.source_type_var = tk.StringVar(value="object")
@@ -29,6 +40,7 @@ class MainWindow:
         self.loaded_count_var = tk.StringVar(value="")
         self.account_var = tk.StringVar()
         self.token_var = tk.StringVar()
+        self.exports_dir_var = tk.StringVar()
 
         self.items_by_display_name: dict[str, dict] = {}
         self.all_items: list[dict] = []
@@ -119,14 +131,47 @@ class MainWindow:
             row=6,
             column=0,
             sticky="w",
-            pady=(0, 16),
+            pady=(0, 12),
         )
+
+        tk.Label(settings_frame, text="Папка выгрузок").grid(
+            row=7,
+            column=0,
+            sticky="w",
+            pady=(0, 4),
+        )
+        exports_frame = tk.Frame(settings_frame)
+        exports_frame.grid(row=8, column=0, sticky="ew", pady=(0, 12))
+
+        exports_entry = tk.Entry(
+            exports_frame,
+            textvariable=self.exports_dir_var,
+            width=32,
+        )
+        exports_entry.pack(side="left", fill="x", expand=True)
+
+        tk.Button(
+            exports_frame,
+            text="Выбрать...",
+            width=10,
+            command=self._choose_exports_dir,
+        ).pack(side="left", padx=(8, 0))
+
+        tk.Button(
+            exports_frame,
+            text="Открыть",
+            width=10,
+            command=self._open_exports_dir,
+        ).pack(side="left", padx=(8, 0))
+
+        self._bind_entry_shortcuts(exports_entry)
+
         tk.Button(
             settings_frame,
             text="Сохранить настройки",
             width=20,
             command=self._save_settings,
-        ).grid(row=7, column=0, sticky="e")
+        ).grid(row=9, column=0, sticky="e")
 
         self._bind_entry_shortcuts(account_entry)
         self._bind_entry_shortcuts(token_entry)
@@ -190,7 +235,30 @@ class MainWindow:
             fg="#555555",
         ).grid(row=3, column=0, sticky="w", pady=(14, 0))
 
+        footer_frame = tk.Frame(frame)
+        footer_frame.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(12, 0))
+
+        guide_link = tk.Label(
+            footer_frame,
+            text="Руководство",
+            fg="#0066cc",
+            cursor="hand2",
+        )
+        guide_link.pack(side="left")
+        guide_link.bind("<Button-1>", lambda _event: self._open_user_guide())
+
+        about_link = tk.Label(
+            footer_frame,
+            text="О программе",
+            fg="#0066cc",
+            cursor="hand2",
+        )
+        about_link.pack(side="left", padx=(16, 0))
+        about_link.bind("<Button-1>", lambda _event: self._show_about())
+
     def _load_settings(self) -> None:
+        self.exports_dir_var.set(str(get_exports_dir()))
+
         account = load_account()
 
         if not account:
@@ -333,15 +401,28 @@ class MainWindow:
 
     def _save_settings(self) -> None:
         try:
-            account = self.account_var.get()
-            token = self.token_var.get()
+            account = validate_account(self.account_var.get())
+            token = validate_token(self.token_var.get())
+            exports_dir = self.exports_dir_var.get()
+
+            test_config = {
+                "account": account,
+                "token": token,
+                "base_url": f"https://{account}.planfix.ru/rest",
+            }
+
+            self.status_var.set("Проверяю аккаунт и токен...")
+            self.root.update_idletasks()
+            check_connection(test_config)
 
             save_account(account)
             save_token(account, token)
+            save_exports_dir(exports_dir)
 
             from planfix_export_fields_interactive import load_config
 
             self.config = load_config()
+            self.exports_dir_var.set(str(get_exports_dir()))
             self._on_source_type_changed()
         except Exception as error:
             messagebox.showerror(
@@ -352,8 +433,75 @@ class MainWindow:
 
         messagebox.showinfo(
             "Настройки сохранены",
-            "Аккаунт и токен успешно сохранены.",
+            "Аккаунт, токен и папка выгрузок успешно сохранены.",
         )
+
+    def _choose_exports_dir(self) -> None:
+        initial_dir = self.exports_dir_var.get() or str(get_exports_dir())
+        selected_dir = filedialog.askdirectory(
+            title="Выберите папку для выгрузок",
+            initialdir=initial_dir,
+        )
+
+        if selected_dir:
+            self.exports_dir_var.set(selected_dir)
+
+    def _open_exports_dir(self) -> None:
+        try:
+            exports_dir = get_exports_dir()
+            exports_dir.mkdir(parents=True, exist_ok=True)
+            os.startfile(exports_dir)
+        except Exception as error:
+            messagebox.showerror(
+                "Не удалось открыть папку",
+                str(error),
+            )
+
+    def _open_user_guide(self) -> None:
+        webbrowser.open(USER_GUIDE_URL)
+
+    def _show_about(self) -> None:
+        about_window = tk.Toplevel(self.root)
+        about_window.title("О программе")
+        about_window.resizable(False, False)
+        about_window.transient(self.root)
+        about_window.grab_set()
+
+        frame = tk.Frame(about_window, padx=18, pady=18)
+        frame.pack(fill="both", expand=True)
+
+        tk.Label(
+            frame,
+            text="Planfix Field Exporter",
+            font=("Segoe UI", 12, "bold"),
+        ).grid(row=0, column=0, sticky="w")
+
+        tk.Label(
+            frame,
+            text=f"Версия {APP_VERSION}",
+        ).grid(row=1, column=0, sticky="w", pady=(4, 12))
+
+        tk.Label(
+            frame,
+            text="Выгрузка пользовательских полей Planfix в CSV.",
+            justify="left",
+        ).grid(row=2, column=0, sticky="w", pady=(0, 12))
+
+        link_label = tk.Label(
+            frame,
+            text=PROJECT_URL,
+            fg="#0066cc",
+            cursor="hand2",
+        )
+        link_label.grid(row=3, column=0, sticky="w", pady=(0, 16))
+        link_label.bind("<Button-1>", lambda _event: webbrowser.open(PROJECT_URL))
+
+        tk.Button(
+            frame,
+            text="Закрыть",
+            width=12,
+            command=about_window.destroy,
+        ).grid(row=4, column=0, sticky="e")
 
     def _bind_entry_shortcuts(self, entry: tk.Entry) -> None:
         entry.bind("<Control-KeyPress>", lambda event: self._handle_control_shortcut(entry, event))

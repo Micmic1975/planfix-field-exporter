@@ -9,7 +9,7 @@
 - выгрузка полей объектов Planfix;
 - выгрузка полей шаблонов задач Planfix;
 - выбор объекта или шаблона из полного списка;
-- сохранение CSV-файлов в папку `Документы\Planfix Field Exporter`;
+- сохранение CSV-файлов в выбранную пользователем папку;
 - хранение токена доступа в системном хранилище секретов Windows;
 - графический интерфейс на Tkinter.
 
@@ -20,7 +20,7 @@
 - токен доступа:
   в системном хранилище секретов Windows;
 - CSV-выгрузки:
-  `Документы\Planfix Field Exporter`.
+  по умолчанию `Документы\Planfix Field Exporter`, либо выбранная пользователем папка.
 
 ### Запуск из исходников
 
@@ -75,7 +75,7 @@ A small desktop application for exporting Planfix custom fields to CSV.
 - export custom fields of Planfix objects;
 - export custom fields of Planfix task templates;
 - choose an object or task template from the complete list;
-- save CSV files to `Documents\Planfix Field Exporter`;
+- save CSV files to a user-selected folder;
 - store the access token in the Windows system credential store;
 - Tkinter-based graphical interface.
 
@@ -86,7 +86,7 @@ A small desktop application for exporting Planfix custom fields to CSV.
 - access token:
   stored in the Windows system credential store;
 - CSV exports:
-  `Documents\Planfix Field Exporter`.
+  `Documents\Planfix Field Exporter` by default, or a user-selected folder.
 
 ### Run from source
 
