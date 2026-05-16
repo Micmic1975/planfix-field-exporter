@@ -11,6 +11,7 @@ from settings import (
     save_account,
     save_token,
 )
+from version import APP_VERSION
 
 
 class MainWindow:
@@ -18,7 +19,7 @@ class MainWindow:
         self.config = config
 
         self.root = tk.Tk()
-        self.root.title("Planfix Field Exporter")
+        self.root.title(f"Planfix Field Exporter {APP_VERSION}")
         self.root.resizable(False, False)
 
         self.source_type_var = tk.StringVar(value="object")
