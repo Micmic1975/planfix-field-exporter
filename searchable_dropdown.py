@@ -1,7 +1,8 @@
 import tkinter as tk
+from tkinter import ttk
 
 
-class SearchableDropdown(tk.Frame):
+class SearchableDropdown(ttk.Frame):
     def __init__(self, master, width: int = 68, **kwargs) -> None:
         super().__init__(master, **kwargs)
 
@@ -10,10 +11,11 @@ class SearchableDropdown(tk.Frame):
         self.filtered_items: list[str] = []
         self.on_select_callback = None
 
-        self.entry = tk.Entry(
+        self.entry = ttk.Entry(
             self,
             textvariable=self.value_var,
             width=width,
+            style="App.TEntry",
         )
         self.entry.pack(fill="x")
 
@@ -25,6 +27,7 @@ class SearchableDropdown(tk.Frame):
         self.entry.bind("<FocusIn>", self._on_focus_in)
         self.entry.bind("<Button-1>", self._on_click)
         self.entry.bind("<Down>", self._focus_first_item)
+        self.entry.bind("<Return>", self._select_entry_value)
         self.entry.bind("<Escape>", lambda _event: self.hide_popup())
         self.entry.bind("<Control-KeyPress>", self._handle_control_shortcut)
         self.top_level = self.winfo_toplevel()
@@ -95,12 +98,25 @@ class SearchableDropdown(tk.Frame):
             self.popup = tk.Toplevel(self)
             self.popup.overrideredirect(True)
             self.popup.attributes("-topmost", True)
+            self.popup.configure(bg="#d7dee8")
 
             self.listbox = tk.Listbox(
                 self.popup,
                 height=min(10, len(self.filtered_items)),
+                activestyle="none",
+                background="#ffffff",
+                borderwidth=0,
+                exportselection=False,
+                font=("Segoe UI", 10),
+                foreground="#182230",
+                highlightbackground="#d7dee8",
+                highlightcolor="#3b82f6",
+                highlightthickness=1,
+                relief="flat",
+                selectbackground="#e8f1ff",
+                selectforeground="#0f172a",
             )
-            self.listbox.pack(fill="both", expand=True)
+            self.listbox.pack(fill="both", expand=True, padx=1, pady=1)
             self.listbox.bind("<ButtonPress-1>", self._select_clicked_item)
             self.listbox.bind("<Return>", self._select_current_item)
             self.listbox.bind("<Escape>", lambda _event: self.hide_popup())
@@ -118,9 +134,10 @@ class SearchableDropdown(tk.Frame):
     def _position_popup(self) -> None:
         self.update_idletasks()
         x = self.entry.winfo_rootx()
-        y = self.entry.winfo_rooty() + self.entry.winfo_height()
+        y = self.entry.winfo_rooty() + self.entry.winfo_height() + 4
         width = self.entry.winfo_width()
-        self.popup.geometry(f"{width}x{min(220, 22 * max(1, len(self.filtered_items)))}+{x}+{y}")
+        height = min(240, 28 * max(1, len(self.filtered_items)) + 2)
+        self.popup.geometry(f"{width}x{height}+{x}+{y}")
 
     def _refresh_listbox(self) -> None:
         if self.listbox is None:
@@ -157,7 +174,25 @@ class SearchableDropdown(tk.Frame):
         if not selection:
             return "break"
 
-        selected_value = self.listbox.get(selection[0])
+        self._select_value(self.listbox.get(selection[0]))
+        return "break"
+
+    def _select_entry_value(self, _event=None):
+        entered_value = self.value_var.get()
+
+        if entered_value in self.items:
+            self._select_value(entered_value)
+            return "break"
+
+        self._apply_filter()
+
+        if self.filtered_items:
+            self._select_value(self.filtered_items[0])
+            return "break"
+
+        return "break"
+
+    def _select_value(self, selected_value: str) -> None:
         self.value_var.set(selected_value)
         self.suppress_next_focus_popup = True
         self.hide_popup()
@@ -165,8 +200,6 @@ class SearchableDropdown(tk.Frame):
 
         if self.on_select_callback is not None:
             self.on_select_callback(selected_value)
-
-        return "break"
 
     def _select_clicked_item(self, event):
         if self.listbox is None:
@@ -180,14 +213,7 @@ class SearchableDropdown(tk.Frame):
         self.listbox.selection_clear(0, tk.END)
         self.listbox.selection_set(clicked_index)
         self.listbox.activate(clicked_index)
-        selected_value = self.listbox.get(clicked_index)
-        self.value_var.set(selected_value)
-        self.suppress_next_focus_popup = True
-        self.hide_popup()
-        self.entry.focus_set()
-
-        if self.on_select_callback is not None:
-            self.on_select_callback(selected_value)
+        self._select_value(self.listbox.get(clicked_index))
 
         return "break"
 

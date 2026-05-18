@@ -35,12 +35,18 @@ CSV_COLUMNS = [
 ]
 
 
-def save_to_csv(rows: list[dict], filename: Path) -> None:
-    filename.parent.mkdir(exist_ok=True)
+def save_to_csv(rows: list[dict], filename: Path, columns: list[str] | None = None) -> None:
+    filename.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = columns or CSV_COLUMNS
 
     try:
         with open(filename, "w", encoding="utf-8-sig", newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=CSV_COLUMNS, delimiter=";")
+            writer = csv.DictWriter(
+                file,
+                fieldnames=fieldnames,
+                delimiter=";",
+                extrasaction="ignore",
+            )
             writer.writeheader()
             writer.writerows(rows)
     except PermissionError as error:

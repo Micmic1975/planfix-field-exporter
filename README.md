@@ -2,14 +2,18 @@
 
 ## Русский
 
-Небольшое настольное приложение для выгрузки пользовательских полей Planfix в CSV.
+Небольшое настольное приложение для просмотра пользовательских полей Planfix.
 
 ### Возможности
 
-- выгрузка полей объектов Planfix;
-- выгрузка полей шаблонов задач Planfix;
+- просмотр полей объектов Planfix;
+- просмотр полей шаблонов задач Planfix;
 - выбор объекта или шаблона из полного списка;
-- сохранение CSV-файлов в выбранную пользователем папку;
+- просмотр результата в таблице приложения;
+- выбор столбцов, которые нужно показать;
+- фильтрация и сортировка таблицы;
+- копирование отдельных значений из таблицы;
+- сохранение выбранного набора столбцов в CSV;
 - хранение токена доступа в системном хранилище секретов Windows;
 - графический интерфейс на Tkinter.
 
@@ -56,6 +60,8 @@
 
 `config.json` исключён из Git и не должен публиковаться.
 
+Консольная версия по-прежнему сохраняет результат в CSV.
+
 ### Руководство пользователя
 
 Подробное руководство на русском языке:
@@ -68,14 +74,18 @@ docs/user-guide.ru.md
 
 ## English
 
-A small desktop application for exporting Planfix custom fields to CSV.
+A small desktop application for viewing Planfix custom fields.
 
 ### Features
 
-- export custom fields of Planfix objects;
-- export custom fields of Planfix task templates;
+- view custom fields of Planfix objects;
+- view custom fields of Planfix task templates;
 - choose an object or task template from the complete list;
-- save CSV files to a user-selected folder;
+- view the result in an in-app table;
+- choose which columns should be visible;
+- filter and sort the table;
+- copy individual values from the table;
+- save the selected column set to CSV;
 - store the access token in the Windows system credential store;
 - Tkinter-based graphical interface.
 
@@ -121,3 +131,5 @@ If you want to use it:
    ```
 
 `config.json` is excluded from Git and must not be published.
+
+The console version still saves the result to CSV.
