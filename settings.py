@@ -11,6 +11,7 @@ APP_NAME = "Planfix Field Exporter"
 APP_AUTHOR = "PlanfixTools"
 SETTINGS_FILENAME = "settings.json"
 TOKEN_SERVICE_NAME = "Planfix Field Exporter"
+EXCLUDED_FORMULA_SEARCH_DIRECTORIES_KEY = "excluded_formula_search_directory_ids"
 
 
 def get_settings_dir() -> Path:
@@ -179,6 +180,34 @@ def save_exports_dir(exports_dir: str | Path) -> None:
     cleaned_exports_dir = validate_exports_dir(exports_dir)
     data = load_settings_data()
     data["exports_dir"] = str(cleaned_exports_dir)
+    save_settings_data(data)
+
+
+def load_excluded_formula_search_directory_ids() -> set[str]:
+    data = load_settings_data()
+    raw_ids = data.get(EXCLUDED_FORMULA_SEARCH_DIRECTORIES_KEY, [])
+
+    if not isinstance(raw_ids, list):
+        return set()
+
+    return {
+        str(directory_id).strip()
+        for directory_id in raw_ids
+        if str(directory_id).strip()
+    }
+
+
+def save_excluded_formula_search_directory_ids(directory_ids) -> None:
+    cleaned_ids = sorted(
+        {
+            str(directory_id).strip()
+            for directory_id in directory_ids
+            if str(directory_id).strip()
+        },
+        key=lambda value: int(value) if value.isdigit() else value,
+    )
+    data = load_settings_data()
+    data[EXCLUDED_FORMULA_SEARCH_DIRECTORIES_KEY] = cleaned_ids
     save_settings_data(data)
 
 

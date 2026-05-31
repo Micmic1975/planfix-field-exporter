@@ -14,6 +14,9 @@
 - фильтрация и сортировка таблицы;
 - копирование отдельных значений из таблицы;
 - сохранение выбранного набора столбцов в CSV;
+- локальный индекс формул Planfix: вычисляемые поля задач/контактов и
+  текстовые поля записей справочников;
+- быстрый поиск использований выбранного поля в формулах по локальному индексу;
 - хранение токена доступа в системном хранилище секретов Windows;
 - графический интерфейс на Tkinter.
 
@@ -25,6 +28,13 @@
   в системном хранилище секретов Windows;
 - CSV-выгрузки:
   по умолчанию `Документы\Planfix Field Exporter`, либо выбранная пользователем папка.
+- локальный индекс формул:
+  `<Папка выгрузок>\formula_index`;
+- результаты поиска по формулам:
+  `<Папка выгрузок>\formula_search\<timestamp>`.
+
+При обновлении индекса формул приложение выполняет read-only запросы к Planfix
+с паузой не менее `1.25` секунды между любыми HTTP-запросами.
 
 ### Запуск из исходников
 
@@ -86,6 +96,9 @@ A small desktop application for viewing Planfix custom fields.
 - filter and sort the table;
 - copy individual values from the table;
 - save the selected column set to CSV;
+- local Planfix formula index for task/contact calculated fields and text
+  fields in directory entries;
+- fast local search for usages of the selected field in formulas;
 - store the access token in the Windows system credential store;
 - Tkinter-based graphical interface.
 
@@ -97,6 +110,13 @@ A small desktop application for viewing Planfix custom fields.
   stored in the Windows system credential store;
 - CSV exports:
   `Documents\Planfix Field Exporter` by default, or a user-selected folder.
+- local formula index:
+  `<Exports folder>\formula_index`;
+- formula search results:
+  `<Exports folder>\formula_search\<timestamp>`.
+
+Formula index updates use read-only Planfix requests with at least `1.25`
+seconds between any two HTTP requests.
 
 ### Run from source
 
